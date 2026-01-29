@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useMemo, useState } from "react";
 import type { ChartSpec } from "../lib/charts";
 import { runEDA } from "../lib/eda";
-import { generateKPIs } from "../lib/kpis";
+import { generateKPIs, type KPI } from "../lib/kpis"; // ✅ single source of truth
 import { generateCharts } from "../lib/charts";
 
 /* =========================
@@ -63,13 +63,6 @@ export type EDAResult = {
   columns: Record<string, ColumnEDA>;
 };
 
-export type KPI = {
-  label: string;
-  value: number | string;
-  column?: string;
-  type: "sum" | "mean" | "min" | "max" | "count";
-};
-
 export type DatasetState = {
   data: any[] | null;
   meta: Meta | null;
@@ -80,7 +73,7 @@ export type DatasetState = {
   /**
    * SAFE SETTER:
    * You can call this with ONLY data + meta, and it will compute EDA/KPIs/Charts.
-   * Still supports old calls where you pass eda/kpis explicitly.
+   * Still supports old calls where you pass eda/kpis/charts explicitly.
    */
   setDataset: (
     data: any[],
@@ -112,11 +105,7 @@ function computeMissingValues(data: any[]): number {
   for (const row of data) {
     for (const k of keys) {
       const v = row?.[k];
-      if (
-        v === null ||
-        v === undefined ||
-        (typeof v === "string" && v.trim() === "")
-      ) {
+      if (v === null || v === undefined || (typeof v === "string" && v.trim() === "")) {
         missing += 1;
       }
     }
@@ -154,16 +143,14 @@ export function DatasetProvider({ children }: { children: React.ReactNode }) {
       missingValues: Number(m?.missingValues ?? computeMissingValues(rows) ?? 0),
     };
 
-    // If caller didn't pass EDA/KPIs/Charts, compute them HERE (the real fix)
+    // If caller didn't pass EDA/KPIs/Charts, compute them HERE
     const edaSafe = (e && typeof e === "object" ? e : runEDA(rows)) as EDAResult;
 
-    const kpisSafe = safeArray<KPI>(k).length
-      ? safeArray<KPI>(k)
-      : (generateKPIs(rows, edaSafe) as KPI[]);
+    const kpisSafe =
+      safeArray<KPI>(k).length > 0 ? safeArray<KPI>(k) : generateKPIs(rows, edaSafe);
 
-    const chartsSafe = safeArray<ChartSpec>(ch).length
-      ? safeArray<ChartSpec>(ch)
-      : (generateCharts(rows, edaSafe) as ChartSpec[]);
+    const chartsSafe =
+      safeArray<ChartSpec>(ch).length > 0 ? safeArray<ChartSpec>(ch) : generateCharts(rows, edaSafe);
 
     setData(rows);
     setMeta(metaSafe);
@@ -193,11 +180,7 @@ export function DatasetProvider({ children }: { children: React.ReactNode }) {
     [data, meta, eda, kpis, charts]
   );
 
-  return (
-    <DatasetContext.Provider value={value}>
-      {children}
-    </DatasetContext.Provider>
-  );
+  return <DatasetContext.Provider value={value}>{children}</DatasetContext.Provider>;
 }
 
 export function useDataset() {
