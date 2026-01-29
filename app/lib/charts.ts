@@ -284,16 +284,18 @@ function computeBox(values: number[]) {
    Categorical helpers
 ============================================================ */
 
-function capTopValuesWithOther(info: any, maxBars: number) {
-  const topValues = Array.isArray(info?.topValues) ? info.topValues : [];
+type TopBarItem = { label: string; count: number };
+
+function capTopValuesWithOther(info: any, maxBars: number): TopBarItem[] {
+  const topValues = Array.isArray(info?.topValues) ? (info.topValues as any[]) : [];
   const nonMissing = Number(info?.nonMissingCount ?? 0);
 
-  const trimmed = topValues.slice(0, maxBars).map((t: any) => ({
-    label: String(t.value),
-    count: Number(t.count ?? 0),
+  const trimmed: TopBarItem[] = topValues.slice(0, maxBars).map((t: any): TopBarItem => ({
+    label: String(t?.value ?? ""),
+    count: Number(t?.count ?? 0),
   }));
 
-  const shownSum = trimmed.reduce((a, b) => a + b.count, 0);
+  const shownSum = trimmed.reduce((a: number, b: TopBarItem) => a + b.count, 0);
   const other = Math.max(0, nonMissing - shownSum);
   if (other > 0) trimmed.push({ label: "Other", count: other });
 
@@ -615,7 +617,7 @@ export function generateCharts(data: any[], eda: any): ChartSpec[] {
   // All column names in dataset (EDA should have them, but be safe)
   const allCols = entries.map(([c]) => c);
 
-  //  numeric columns but EXCLUDE id-like numeric
+  // numeric columns but EXCLUDE id-like numeric
   const numericColsFromEDA = entries
     .filter(([, info]) => info?.type === "numeric")
     .map(([c, info]) => ({ c, info }))
@@ -624,14 +626,14 @@ export function generateCharts(data: any[], eda: any): ChartSpec[] {
 
   const numericSet = new Set(numericColsFromEDA);
 
-  //  date columns from EDA
+  // date columns from EDA
   const dateColsFromEDA = entries
     .filter(([, info]) => info?.type === "date" || info?.type === "datetime")
     .map(([c]) => c);
 
   const dateSet = new Set(dateColsFromEDA);
 
-  //  categorical columns (we will still filter id-like/name-list later)
+  // categorical columns (we will still filter id-like/name-list later)
   const catColsFromEDA = entries.filter(([, info]) => info?.type === "categorical").map(([c]) => c);
 
   // --- Fallback detection (THIS is what fixes "only 2 charts" when date was mis-typed) ---
@@ -650,7 +652,6 @@ export function generateCharts(data: any[], eda: any): ChartSpec[] {
 
   /* ========================= NUMERIC -> HISTOGRAM + BOX ========================= */
   for (const col of numericCols) {
-    // still apply id-like numeric check if EDA didn't provide info
     const info = eda.columns?.[col];
     if (isIdLikeNumeric(col, info, rowCount)) continue;
 
@@ -730,7 +731,7 @@ export function generateCharts(data: any[], eda: any): ChartSpec[] {
     if (Array.isArray(info?.topValues) && info.topValues.length) {
       const capped = capTopValuesWithOther(info, maxBars);
       if (capped.length) {
-        const total = capped.reduce((a, b) => a + b.count, 0) || 1;
+        const total = capped.reduce((a: number, b: TopBarItem) => a + b.count, 0) || 1;
         const top = capped[0]?.count ?? 0;
         const dominance = top / total;
 
@@ -765,12 +766,16 @@ export function generateCharts(data: any[], eda: any): ChartSpec[] {
     if (!freq.size) continue;
 
     const sorted = [...freq.entries()].sort((a, b) => b[1] - a[1]);
-    const top = sorted.slice(0, maxBars).map(([label, count]) => ({ label, count }));
-    const shownSum = top.reduce((a, b) => a + b.count, 0);
+    const top: TopBarItem[] = sorted.slice(0, maxBars).map(([label, count]) => ({
+      label: String(label),
+      count: Number(count),
+    }));
+
+    const shownSum = top.reduce((a: number, b: TopBarItem) => a + b.count, 0);
     const other = Math.max(0, nonMissing - shownSum);
     if (other > 0) top.push({ label: "Other", count: other });
 
-    const total = top.reduce((a, b) => a + b.count, 0) || 1;
+    const total = top.reduce((a: number, b: TopBarItem) => a + b.count, 0) || 1;
     const dominance = (top[0]?.count ?? 0) / total;
     const score = Math.log10(total + 1) * 10 + dominance * 60;
 
@@ -790,7 +795,6 @@ export function generateCharts(data: any[], eda: any): ChartSpec[] {
 
   /* ========================= DATE + NUMERIC -> TIME ========================= */
   for (const dcol of dateCols) {
-    // if date column is ID-ish by name, skip (rare but safe)
     if (nameHintsId(dcol)) continue;
 
     for (const ncol of numericCols) {
