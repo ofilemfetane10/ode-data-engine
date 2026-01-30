@@ -7,9 +7,10 @@ export default function InstallButton() {
   const [installed, setInstalled] = useState(false);
 
   useEffect(() => {
-    // detect if already installed (PWA)
+    // Detect if already installed (PWA)
     const isStandalone =
       window.matchMedia?.("(display-mode: standalone)")?.matches ||
+      // iOS Safari
       // @ts-ignore
       window.navigator?.standalone === true;
 
@@ -56,12 +57,10 @@ export default function InstallButton() {
           : "Install ODE"
       }
       className={[
-        "rounded-md border px-3 py-2 text-sm font-medium transition",
-        installed
-          ? "border-neutral-200 text-neutral-400 cursor-not-allowed"
-          : disabled
-          ? "border-neutral-200 text-neutral-400 cursor-not-allowed"
-          : "border-red-500 text-red-600 hover:bg-red-50",
+        "rounded-md px-3 py-2 text-sm font-medium transition",
+        disabled
+          ? "bg-neutral-200 text-neutral-500 cursor-not-allowed"
+          : "bg-red-500 text-white hover:bg-red-600",
       ].join(" ")}
     >
       {installed ? "Installed" : "Install ODE"}
