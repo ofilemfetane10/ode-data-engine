@@ -24,6 +24,8 @@ import { generateInsights, type Insight } from "../lib/insights";
 import { ChartCard, type ChartSelection } from "./_components/InteractiveCharts";
 import { generateKPIs, type KPI } from "../lib/kpis";
 import { answerQuestion } from "../lib/ask";
+import InstallButton from "./_components/InstallButton";
+import FeedbackButton from "./_components/FeedbackButton";
 
 type ChatMsg = { role: "user" | "ode"; text: string };
 
@@ -350,7 +352,10 @@ export default function Dashboard() {
           <p className="mt-1 text-xs text-neutral-400">{overviewLine}</p>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-2 items-center">
+          <InstallButton />
+          <FeedbackButton />
+
           <button
             onClick={() => {
               clearDataset();
