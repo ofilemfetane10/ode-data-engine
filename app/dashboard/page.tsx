@@ -3,17 +3,17 @@
 /**
  * app/dashboard/page.tsx
  * Hooks-safe Dashboard + Clear works
- * -  No early return before hooks
- * -  Removed redundant "Dataset Overview" section
- * -  Added compact meta line under filename
- * -  Removed "Upload another" (redundant)
- * -  Renamed Clear -> New dataset
+ * - No early return before hooks
+ * - Removed redundant "Dataset Overview" section
+ * - Added compact meta line under filename
+ * - Removed "Upload another" (redundant)
+ * - Renamed Clear -> New dataset
  *
  * IMPORTANT FIX:
- * -  Stop using stale context `charts`
- * -  Recompute charts from (data + eda) using generateCharts()
- * -  Do NOT filter to histogram/bar only
- * -  FINAL SAFETY: filter out ID-like columns (transaction_id etc)
+ * - Stop using stale context charts
+ * - Recompute charts from (data + eda) using generateCharts()
+ * - Do NOT filter to histogram/bar only
+ * - FINAL SAFETY: filter out ID-like columns (transaction_id etc)
  */
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
@@ -30,9 +30,10 @@ type ChatMsg = { role: "user" | "ode"; text: string };
 export default function Dashboard() {
   const router = useRouter();
 
-  //  charts removed — compute charts locally so it always reflects latest generator
+  // charts removed — compute charts locally so it always reflects latest generator
   const { data, meta, eda, clearDataset } = useDataset();
 
+  // NOTE: require data + meta + eda to show dashboard
   const hasDataset = Boolean(data && meta && eda);
 
   useEffect(() => {
@@ -53,14 +54,14 @@ export default function Dashboard() {
     {
       role: "ode",
       text:
-        `Try:\n` +
-        `• "trend" / "what stands out"\n` +
-        `• "top <column>" (e.g. "top country")\n` +
-        `• "explain <column>"\n` +
-        `• "distribution of <column>"\n` +
-        `• "any outliers?"\n` +
-        `• "time trend" (if you have a date column)\n` +
-        `• "missing by column"\n`,
+        'Try:\n' +
+        '• "trend" / "what stands out"\n' +
+        '• "top <column>" (e.g. "top country")\n' +
+        '• "explain <column>"\n' +
+        '• "distribution of <column>"\n' +
+        '• "any outliers?"\n' +
+        '• "time trend" (if you have a date column)\n' +
+        '• "missing by column"\n',
     },
   ]);
 
@@ -99,7 +100,7 @@ export default function Dashboard() {
       {
         id: "fallback-1",
         severity: "info",
-        text: `No major anomalies detected. Try asking "trend" or "top <column>".`,
+        text: 'No major anomalies detected. Try asking "trend" or "top <column>".',
       },
     ] as Insight[];
   }, [insightsAll]);
@@ -162,8 +163,10 @@ export default function Dashboard() {
       if (typeof ch.yColumn === "string" && isIdLikeColumn(ch.yColumn)) return true;
 
       // time charts sometimes have dateColumn / valueColumn
-      if (typeof ch.dateColumn === "string" && isIdLikeColumn(ch.dateColumn)) return true;
-      if (typeof ch.valueColumn === "string" && isIdLikeColumn(ch.valueColumn)) return true;
+      if (typeof ch.dateColumn === "string" && isIdLikeColumn(ch.dateColumn))
+        return true;
+      if (typeof ch.valueColumn === "string" && isIdLikeColumn(ch.valueColumn))
+        return true;
 
       // corr columns[]
       if (
@@ -193,7 +196,6 @@ export default function Dashboard() {
     // 2) remove any charts driven by IDs (transaction_id etc)
     const clean = all.filter((c: any) => !chartUsesId(c));
 
-    // helper
     const byType = (t: string) => clean.filter((c: any) => c?.type === t);
 
     const pick: any[] = [];
@@ -213,7 +215,7 @@ export default function Dashboard() {
       return true;
     };
 
-    // prefer a balanced set (same as you intended)
+    // prefer a balanced set
     push(byType("time")[0]);
     push(byType("scatter")[0] ?? byType("corr")[0]);
     push(byType("histogram")[0] ?? byType("box")[0]);
@@ -225,7 +227,7 @@ export default function Dashboard() {
       push(c);
     }
 
-    // guarantee "min 4 when possible"
+    // guarantee min 4 when possible
     if (pick.length < 4) {
       for (const c of clean) {
         if (pick.length >= 4) break;
@@ -251,7 +253,7 @@ export default function Dashboard() {
     else if (sel.kind === "time") setAskInput(`trend ${sel.yColumn}`);
     else if (sel.kind === "scatter")
       setAskInput(`explain relationship between ${sel.xColumn} and ${sel.yColumn}`);
-    else if (sel.kind === "corr") setAskInput(`explain correlation`);
+    else if (sel.kind === "corr") setAskInput("explain correlation");
     else setAskInput(`distribution of ${sel.column}`);
   };
 
@@ -264,9 +266,9 @@ export default function Dashboard() {
     const cols = meta!.columns ?? Object.keys(data![0] ?? {}).length ?? 0;
     const miss = meta!.missingValues ?? 0;
     const type = (meta!.fileType ?? "").toString().toUpperCase() || "DATA";
-    return `${Number(rows).toLocaleString()} rows • ${Number(cols).toLocaleString()} columns • ${type} • ${Number(
-      miss
-    ).toLocaleString()} missing`;
+    return `${Number(rows).toLocaleString()} rows • ${Number(
+      cols
+    ).toLocaleString()} columns • ${type} • ${Number(miss).toLocaleString()} missing`;
   }, [hasDataset, meta, data]);
 
   /* =========================
@@ -293,7 +295,11 @@ export default function Dashboard() {
         'Try: "top <column>", "explain <column>", "time trend".';
     }
 
-    setChat((prev) => [...prev, { role: "user", text }, { role: "ode", text: reply }]);
+    setChat((prev) => [
+      ...prev,
+      { role: "user", text },
+      { role: "ode", text: reply },
+    ]);
     setAskInput("");
   };
 
@@ -302,14 +308,14 @@ export default function Dashboard() {
       {
         role: "ode",
         text:
-          `Try:\n` +
-          `• "trend" / "what stands out"\n` +
-          `• "top <column>"\n` +
-          `• "explain <column>"\n` +
-          `• "distribution of <column>"\n` +
-          `• "any outliers?"\n` +
-          `• "time trend"\n` +
-          `• "missing by column"`,
+          'Try:\n' +
+          '• "trend" / "what stands out"\n' +
+          '• "top <column>"\n' +
+          '• "explain <column>"\n' +
+          '• "distribution of <column>"\n' +
+          '• "any outliers?"\n' +
+          '• "time trend"\n' +
+          '• "missing by column"',
       },
     ]);
 
@@ -389,7 +395,9 @@ export default function Dashboard() {
                     Curated visuals (min 4 when possible)
                   </p>
                 </div>
-                <p className="text-xs text-neutral-400">picked by data type + strongest signal</p>
+                <p className="text-xs text-neutral-400">
+                  picked by data type + strongest signal
+                </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -408,7 +416,9 @@ export default function Dashboard() {
               <div className="mt-6 text-xs text-neutral-500">
                 Tip: click a bar/bin/point to drill down. Ask ODE like:{" "}
                 <span className="font-medium">
-                  {chosenCharts?.[0]?.column ? `explain ${chosenCharts[0].column}` : "trend"}
+                  {chosenCharts?.[0]?.column
+                    ? `explain ${chosenCharts[0].column}`
+                    : "trend"}
                 </span>
               </div>
             </section>
@@ -510,7 +520,9 @@ export default function Dashboard() {
           {/* AI INSIGHTS */}
           <div className="border rounded-2xl p-6">
             <h3 className="text-lg font-semibold mb-1">AI Insights</h3>
-            <p className="text-sm text-neutral-500 mb-4">What stands out most (warnings first)</p>
+            <p className="text-sm text-neutral-500 mb-4">
+              What stands out most (warnings first)
+            </p>
 
             <div className="space-y-3">
               {insights.length ? (
@@ -551,7 +563,10 @@ export default function Dashboard() {
           <div className="border rounded-2xl p-6">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-lg font-semibold">Ask ODE</h3>
-              <button onClick={onClearChat} className="text-xs text-neutral-500 underline">
+              <button
+                onClick={onClearChat}
+                className="text-xs text-neutral-500 underline"
+              >
                 Clear chat
               </button>
             </div>
@@ -596,9 +611,15 @@ export default function Dashboard() {
             <div className="mt-4 flex flex-wrap gap-2">
               <QuickAsk label="Trend" onClick={() => onAsk("trend")} />
               <QuickAsk label="Outliers" onClick={() => onAsk("any outliers?")} />
-              <QuickAsk label="What stands out" onClick={() => onAsk("what stands out")} />
+              <QuickAsk
+                label="What stands out"
+                onClick={() => onAsk("what stands out")}
+              />
               <QuickAsk label="Time trend" onClick={() => onAsk("time trend")} />
-              <QuickAsk label="Missing by column" onClick={() => onAsk("missing by column")} />
+              <QuickAsk
+                label="Missing by column"
+                onClick={() => onAsk("missing by column")}
+              />
             </div>
           </div>
         </aside>
@@ -622,7 +643,10 @@ function Mini({ label, value }: { label: string; value: any }) {
 
 function QuickAsk({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="text-xs border rounded-full px-3 py-1 hover:bg-neutral-50">
+    <button
+      onClick={onClick}
+      className="text-xs border rounded-full px-3 py-1 hover:bg-neutral-50"
+    >
       {label}
     </button>
   );
