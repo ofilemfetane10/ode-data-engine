@@ -3,7 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { DatasetProvider } from "./context/DatasetContext";
 
 export const metadata: Metadata = {
-  title: "ODE — Ofiles Data Engine",
+  title: "ODE",
   description: "Instant insight. Zero setup.",
   manifest: "/manifest.json",
   icons: {
